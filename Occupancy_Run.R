@@ -6,19 +6,19 @@ library(R2WinBUGS)
 #----------------
 df = read.csv("OccDat.csv", sep = ",")
 # extract year from dates and merge to data
-Ys = format(as.Date(df$Date, format = "%d/%m/%Y"),"%Y")
+Ys = format(as.Date(df$Date, format = "%d/%m/%Y"), "%Y")
 df = cbind(df, Ys)
 
 # omit NAs and extract most recent years
 df = na.omit(df)
-df = df[which(df$Year > 2007),]
+df = df[which(df$Year > 2007), ]
 
 # function to create column for intra-annual sampling occasion
 j.list = vector()
 j.list[1] = 1
 count = 1
 
-for (i in 2:length(df[,1])) {
+for (i in 2:length(df[, 1])) {
   if(df[i,1] == df[i-1,1] && df[i,2] == df[i-1,2]){
     count = count + 1
     j.list[i] = count
@@ -39,8 +39,8 @@ dd = dcast(df, Year + Site ~  j.list, value.var = "Caps")
 # add rows for sites that were never sampled to balance dataframe
 library(data.table)
 DT = as.data.table(dd)
-setkey(DT,Site,Year)
-dbase = DT[CJ(unique(Site),seq(min(Year),max(Year)))]
+setkey(DT, Site, Year)
+dbase = DT[CJ(unique(Site), seq(min(Year), max(Year)))]
 
 #--------------------
 # Distance Matrix
@@ -49,8 +49,8 @@ dbase = DT[CJ(unique(Site),seq(min(Year),max(Year)))]
 # read in LatLon data and create a matrix with distances between ponds
 LL = read.csv("OccLatLon.csv", header = T, sep = ",")
 length(df[!duplicated(df$Site), 1])
-LL.dat = LL[LL$ID %in% df[!duplicated(df$Site), 1],]
-LL.dat[,1] = as.factor(LL.dat[,1])
+LL.dat = LL[LL$ID %in% df[!duplicated(df$Site), 1], ]
+LL.dat[, 1] = as.factor(LL.dat[, 1])
 colnames(LL.dat) = c("Site", "lat", "lon")
 
 ReplaceLowerOrUpperTriangle <- function(m, triangle.to.replace){
@@ -107,7 +107,7 @@ dmat = GeoDistanceInMetresMatrix(LL.dat)
 #-------------------------------------------------------------
 
 # extract sites for which there is GPS data 
-dbase = dbase[dbase$Site %in% LL.dat$Site,]
+dbase = dbase[dbase$Site %in% LL.dat$Site, ]
 
 
 #----------------
