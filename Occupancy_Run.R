@@ -139,9 +139,9 @@ apply(tmp, 2, sum, na.rm = TRUE)
 
 
 
-#------------
-# Model Run
-#------------
+#----------------------------
+# Dynamic Occupancy Model Run
+#----------------------------
 
 # Bundle data
 win.data <- list(y = y, nsite = dim(y)[1], nrep = dim(y)[2], nyear = dim(y)[3], dmat = dmat)
