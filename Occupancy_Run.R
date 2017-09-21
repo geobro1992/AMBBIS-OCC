@@ -1,13 +1,15 @@
 rm(list = ls())
 library(R2WinBUGS)
+library(reshape2)
+library(data.table)
 
 #----------------
 # Sampling data
 #----------------
-df = read.csv("OccDat.csv", sep = ",")
+df = read.csv("testdat.csv", sep = ",")
 # extract year from dates and merge to data
 Ys = format(as.Date(df$Date, format = "%d/%m/%Y"), "%Y")
-df = cbind(df, Ys)
+df = cbind(df, Year = as.numeric(Ys))
 
 # omit NAs and extract most recent years
 df = na.omit(df)
@@ -19,7 +21,7 @@ j.list[1] = 1
 count = 1
 
 for (i in 2:length(df[, 1])) {
-  if(df[i,1] == df[i-1,1] && df[i,2] == df[i-1,2]){
+  if (df[i, 1] == df[i - 1, 1] && df[i, 4] == df[i - 1, 4]) {
     count = count + 1
     j.list[i] = count
   }
@@ -33,11 +35,9 @@ df = cbind(df, j.list)
 
 
 # recast to have each sampling occasion as its own column
-library(reshape2)
-dd = dcast(df, Year + Site ~  j.list, value.var = "Caps")
+dd = dcast(df, Year + Site ~  j.list, value.var = "AMBBIS")
 
 # add rows for sites that were never sampled to balance dataframe
-library(data.table)
 DT = as.data.table(dd)
 setkey(DT, Site, Year)
 dbase = DT[CJ(unique(Site), seq(min(Year), max(Year)))]
@@ -118,16 +118,16 @@ dbase = dbase[dbase$Site %in% LL.dat$Site, ]
 Ys = as.factor(dbase$Year)
 Ss = as.factor(dbase$Site)
 
-y <- array(NA, dim = c(length(unique(Ss)), 11, length(unique(Ys))))	# sites, reps, years
+y <- array(NA, dim = c(length(unique(Ss)), 4, length(unique(Ys))))	# sites, reps, years
 
 
 # reformat occupancy data into the 3D matrix
 Y1 = min(dbase$Year)
 YN = max(dbase$Year)
 
-for (i in 1:9) {
+for (i in 1:3) {
   sel.rows <- (dbase$Year - Y1) + 1 == i
-  y[, , i] <- as.matrix(dbase[sel.rows, 3:13])
+  y[, , i] <- as.matrix(dbase[sel.rows, 3:6])
 }
 
 y[y > 1] = 1
