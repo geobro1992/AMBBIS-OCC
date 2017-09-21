@@ -6,16 +6,19 @@ library(data.table)
 #----------------
 # Sampling data
 #----------------
+
+# read in data
 df = read.csv("testdat.csv", sep = ",")
+
 # extract year from dates and merge to data
 Ys = format(as.Date(df$Date, format = "%d/%m/%Y"), "%Y")
 df = cbind(df, Year = as.numeric(Ys))
 
-# omit NAs and extract most recent years
+# omit NAs and extract years of interest
 df = na.omit(df)
 df = df[which(df$Year > 2007), ]
 
-# function to create column for intra-annual sampling occasion
+# function to calculate within season sampling occasion and store in a separate column
 j.list = vector()
 j.list[1] = 1
 count = 1
@@ -130,6 +133,7 @@ for (i in 1:3) {
   y[, , i] <- as.matrix(dbase[sel.rows, 3:6])
 }
 
+# Convert counts to binary presence/absence (0,1)
 y[y > 1] = 1
 
 # Look at the number of sites with detections for each year
@@ -155,11 +159,12 @@ inits <- function(){ list(z = z)}
 params <- c("PSI1", "muZ", "E", "g", "P", "n.occ", "Alpha")
 
 # MCMC settings
-ni <- 2000000
-nt <- 100
-nb <- 10000
-nc <- 3
+ni <- 2000000   # iterations
+nt <- 100       # thinning
+nb <- 10000     # burn in
+nc <- 3         # chains
 
 # Call WinBUGS from R
 outAB <- bugs(win.data, inits, params, "SMDynOcc.txt", n.chains = nc, n.thin = nt, n.iter = ni, n.burnin = nb, debug = TRUE, bugs.directory = "C:/Program Files (x86)/WinBUGS14", working.directory = getwd())
+# save output
 save(outAB, file = "Occupancy_Run.RData")

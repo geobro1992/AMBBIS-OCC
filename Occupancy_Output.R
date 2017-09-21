@@ -2,7 +2,7 @@
 # Model output
 #------------------------------
 
-outAB = load(file = "outAB.RData")
+outAB = load(file = "Occupancy_Run.RData")
 
 
 ds = seq(1, 3200, length.out = 50)
