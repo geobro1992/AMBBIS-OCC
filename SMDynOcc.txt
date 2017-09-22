@@ -1,9 +1,4 @@
-#--------------------------
-# Dynamic Occupancy Model
-#--------------------------
 
-sink("SMDynOcc.txt")
-cat("
 model {
     
 # Specify priors
@@ -62,5 +57,4 @@ model {
     n.occ[k] <- sum(z[1:nsite, k])
   }
 }
-    ",fill = TRUE)
-sink()
+    
