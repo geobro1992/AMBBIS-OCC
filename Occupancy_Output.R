@@ -5,10 +5,13 @@
 outAB = load(file = "Occupancy_Run.RData")
 
 
-ds = seq(1, 3200, length.out = 50)
-A = outAB$mean$Alpha
+ds = seq(1, 2000, length.out = 50)
+A = median(outAB$sims.list$Alpha)
 A.low = min(quantile(outAB$sims.list$Alpha, probs = c(0.05, 0.95)))
 A.high = max(quantile(outAB$sims.list$Alpha, probs = c(0.05, 0.95)))
+log(2)/A
+log(2)/A.high
+log(2)/A.low
 
 con = exp(-A*ds)
 con.low = exp(-A.low*ds)
@@ -31,7 +34,7 @@ dev.off()
 
 
 Pstar <- array(NA, dim = c(outAB$n.sims, 10))
-x <- cbind(rep(1, 13500), rep(2, 13500), rep(3, 13500), rep(4, 13500), rep(5, 13500), rep(6, 13500), rep(7, 13500), rep(8, 13500), rep(9, 13500), rep(10, 13500)) 
+x <- cbind(rep(1, 2700), rep(2, 2700), rep(3, 2700), rep(4, 2700), rep(5, 2700), rep(6, 2700), rep(7, 2700), rep(8, 2700), rep(9, 2700), rep(10, 2700)) 
 
 for (i in 1:outAB$n.sims) {
   for (j in 1:10) {

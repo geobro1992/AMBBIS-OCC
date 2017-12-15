@@ -8,15 +8,23 @@ library(data.table)
 #----------------
 
 # read in data
-df = read.csv("testdat.csv", sep = ",")
+df = read.csv("rawdat.csv", sep = ",")
+
+ids = c(2,3,4,5,6,7,11,12,13,14,15,16,18,19,21,30,33,34,36,41,50,51,53,103,107,111,126,201,202)
+
 
 # extract year from dates and merge to data
-Ys = format(as.Date(df$Date, format = "%d/%m/%Y"), "%Y")
+Ys = format(as.Date(df[,2], format = "%m/%d/%Y") - 180, "%Y")
 df = cbind(df, Year = as.numeric(Ys))
+df[is.na(df[,3]),3] <- 0
 
 # omit NAs and extract years of interest
 df = na.omit(df)
-df = df[which(df$Year > 2007), ]
+df = df[which(df$Year > 2008), ]
+
+df = df[order(df[,1]),]
+df = df[df$SITE %in% ids,]
+df = df[with(df, order(SITE, Year)),]
 
 # function to calculate within season sampling occasion and store in a separate column
 j.list = vector()
@@ -35,15 +43,17 @@ for (i in 2:length(df[, 1])) {
 }
 
 df = cbind(df, j.list)
+head(df)
 
 
 # recast to have each sampling occasion as its own column
-dd = dcast(df, Year + Site ~  j.list, value.var = "AMBBIS")
+dd = dcast(df, Year + SITE ~  j.list, value.var = "AMBBIS")
+
 
 # add rows for sites that were never sampled to balance dataframe
 DT = as.data.table(dd)
-setkey(DT, Site, Year)
-dbase = DT[CJ(unique(Site), seq(min(Year), max(Year)))]
+setkey(DT, SITE, Year)
+dbase = DT[CJ(unique(SITE), seq(min(Year), max(Year)))]
 
 #--------------------
 # Distance Matrix
@@ -51,8 +61,8 @@ dbase = DT[CJ(unique(Site), seq(min(Year), max(Year)))]
 
 # read in LatLon data and create a matrix with distances between ponds
 LL = read.csv("OccLatLon.csv", header = T, sep = ",")
-length(df[!duplicated(df$Site), 1])
-LL.dat = LL[LL$ID %in% df[!duplicated(df$Site), 1], ]
+length(df[!duplicated(df$SITE), 1])
+LL.dat = LL[LL$ID %in% df[!duplicated(df$SITE), 1], ]
 LL.dat[, 1] = as.factor(LL.dat[, 1])
 colnames(LL.dat) = c("Site", "lat", "lon")
 
@@ -106,12 +116,10 @@ GeoDistanceInMetresMatrix <- function(df.geopoints){
 }
 
 dmat = GeoDistanceInMetresMatrix(LL.dat)
-
 #-------------------------------------------------------------
 
 # extract sites for which there is GPS data 
-dbase = dbase[dbase$Site %in% LL.dat$Site, ]
-
+dbase = dbase[dbase$SITE %in% LL.dat$Site, ]
 
 #----------------
 # Occupancy Data
@@ -119,18 +127,18 @@ dbase = dbase[dbase$Site %in% LL.dat$Site, ]
 
 # create 3D matrix for occupancy data
 Ys = as.factor(dbase$Year)
-Ss = as.factor(dbase$Site)
+Ss = as.factor(dbase$SITE)
 
-y <- array(NA, dim = c(length(unique(Ss)), 4, length(unique(Ys))))	# sites, reps, years
+y <- array(NA, dim = c(length(unique(Ss)), 15, length(unique(Ys))))	# sites, reps, years
 
 
 # reformat occupancy data into the 3D matrix
 Y1 = min(dbase$Year)
 YN = max(dbase$Year)
 
-for (i in 1:3) {
+for (i in 1:8) {
   sel.rows <- (dbase$Year - Y1) + 1 == i
-  y[, , i] <- as.matrix(dbase[sel.rows, 3:6])
+  y[, , i] <- as.matrix(dbase[sel.rows, 3:17])
 }
 
 # Convert counts to binary presence/absence (0,1)
@@ -141,7 +149,7 @@ tmp <- apply(y, c(1,3), max, na.rm = TRUE)
 tmp[tmp == "-Inf"] <- NA
 apply(tmp, 2, sum, na.rm = TRUE)
 
-
+y
 
 #----------------------------
 # Dynamic Occupancy Model Run
@@ -159,12 +167,12 @@ inits <- function(){ list(z = z)}
 params <- c("PSI1", "muZ", "E", "g", "P", "n.occ", "Alpha")
 
 # MCMC settings
-ni <- 2000000   # iterations
-nt <- 100       # thinning
-nb <- 10000     # burn in
-nc <- 3         # chains
+ni <- 500000   # iterations
+nt <- 100      # thinning
+nb <- 10000    # burn in
+nc <- 3        # chains
 
 # Call WinBUGS from R
 outAB <- bugs(win.data, inits, params, "SMDynOcc.txt", n.chains = nc, n.thin = nt, n.iter = ni, n.burnin = nb, debug = TRUE, bugs.directory = "C:/Program Files (x86)/WinBUGS14", working.directory = getwd())
 # save output
-save(outAB, file = "Occupancy_Run.RData")
+save(outAB, file = "Occupancy_Run2.RData")

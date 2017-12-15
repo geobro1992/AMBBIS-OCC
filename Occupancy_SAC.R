@@ -40,7 +40,7 @@ par(mfrow = c(2, 4))
 count = 0
 dis = list()
 inte = vector()
-for (i in seq(from = 0.3, to = 2, length.out = 8)) {
+for (i in seq(from = 0.3, to = 2, by = 0.05)) {
   count = count + 1
   AB.corr = correlog(dd$LON, dd$LAT, dd$Y, w = NULL, i, resamp = 1000, latlon = TRUE, na.rm = TRUE, quiet = TRUE)
   signif = which(AB.corr[[5]] < 0.05)
@@ -52,7 +52,7 @@ for (i in seq(from = 0.3, to = 2, length.out = 8)) {
 }
 
 seq(from = 0.3, to = 2, by = 0.05)
-AB.corr = correlog(dd$LON, dd$LAT, dd$Y, w = NULL, 0.75, resamp = 1000, latlon = TRUE, na.rm = TRUE, quiet = TRUE)
+AB.corr = correlog(dd$LON, dd$LAT, dd$Y, w = NULL, 0.95, resamp = 1000, latlon = TRUE, na.rm = TRUE, quiet = TRUE)
 AB.corr[2]$mean.of.class
 #----------------------------
 # VARIANCE PARTITIONING
@@ -105,8 +105,6 @@ n = length(myEigenvecs[, 1])
 W = sum(mynbmatrix)
 I_obs = (1 / W * t(myEigenvecs[, 1] - mean(myEigenvecs[, 1])) %*% mynbmatrix %*% (myEigenvecs[, 1] - mean(myEigenvecs[, 1])))/(1 / n * sum((myEigenvecs[, 1] - mean(myEigenvecs[, 1])) ^ 2))#Calculating observed value of Moran's I
 
-
-
 ###Randomization test for first eigenvector
 
 nreps = 1000         # Note: 10,000 replications
@@ -158,8 +156,9 @@ shapiro.test(I_ran)
 ###We know that the expected value of Moran's I is -1/(n-1) = -0.2 in this case, but we can't proceed with a Z-test due to lack of normality###
 ##Our other option is a permutation test based on the empirical CDF and the observed value of Moran's I
 #Let's plot the hostogram and shade the tail of values > I_obs
+I_obs = .2
 histMorans = hist(I_ran, breaks = 50, plot = FALSE)
-plot(histMorans, col = ifelse(histMorans$breaks > I_obs[, 1], "red", "grey50"), main = "Randomization Test for 2th Eigenvector", xlab = "Moran's I")
+plot(histMorans, col = ifelse(histMorans$breaks > I_obs[,1], "red", "grey50"), main = "Randomization Test for 2th Eigenvector", xlab = "Moran's I")
 text(0.2, 40, "Moran's I = 0.37", cex = 1.5)
 #The Test
 perc.rank = ecdf(I_ran)#This establishes percentile values for the empirical CDF

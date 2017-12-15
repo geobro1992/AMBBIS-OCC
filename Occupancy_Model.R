@@ -9,18 +9,13 @@ model {
 # Specify priors
   psi1 ~ dunif(-10, 10)
   logit(PSI1) <- psi1
-  alpha ~ dunif(-10, 10)
-  Alpha <- exp(alpha)
-  mu_p ~ dunif(-10, 10)
-  sd_p ~ dunif(0, 5)
-    
-  for (k in 1:nyear - 1) {
-    phi[k] ~ dunif(-4, -2)
-    logit(E[k]) <- phi[k]
-  }
+  Alpha ~ dunif(0, 1)
+  phi ~ dunif(-10, 10)
+  logit(E) <- phi
+
     
   for (k in 1:nyear) {
-    p[k] ~ dnorm(mu_p, sd_p)
+    p[k] ~ dunif(-10, 10)
     logit(P[k]) <- p[k]
   }
     
@@ -40,8 +35,8 @@ model {
       } #j
       s[i, k-1] <- sum(disp[i, , k-1])
       g[i, k-1] <- 1 - exp(-s[i, k-1])
-      Estar[i, k-1] <- E[k-1] *(1 - g[i, k-1])
-      muZ[i, k-1] <- max(min(z[i, k-1] * (1 - Estar[k-1]) + (1 - z[i, k-1]) * g[i, k-1], 0.99), 0.001)
+      Estar[i, k-1] <- E * (1 - g[i, k-1])
+      muZ[i, k-1] <- max(min(z[i, k-1] * (1 - Estar[i, k-1]) + (1 - z[i, k-1]) * g[i, k-1], 0.99), 0.001)
       z[i, k] ~ dbern(muZ[i, k-1])
     } #i
   } #k
