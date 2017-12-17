@@ -1,9 +1,11 @@
 #------------------------------
 # Model output
 #------------------------------
+library(R2WinBUGS)
+library(reshape2)
+library(data.table)
 
-outAB = load(file = "Occupancy_Run.RData")
-
+load(file = "Occupancy_Run2.RData")
 
 ds = seq(1, 2000, length.out = 50)
 A = median(outAB$sims.list$Alpha)
