@@ -2,9 +2,9 @@
 
 Supporting code for the manuscripts:
 
-_Brooks et al. 2019. Indirect connectivity estimates of amphibian breeding wetlands from spatially explicit occupancy models. Aquatic Conservation: Marine and Freshwater Ecosystems, 29, 1815-1825._
+**Brooks et al. 2019.** Indirect connectivity estimates of amphibian breeding wetlands from spatially explicit occupancy models. Aquatic Conservation: Marine and Freshwater Ecosystems, 29, 1815-1825.
 
-_Martin et al. Tracking reticulated flatwoods salamander recovery in response to habitat restoration and assisted translocations._
+**Martin et al.** Tracking reticulated flatwoods salamander recovery in response to habitat restoration and assisted translocations.
 
 ## Contents
 ### 2019
