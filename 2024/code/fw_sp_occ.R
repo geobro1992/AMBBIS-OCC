@@ -1,3 +1,5 @@
+rm(list=ls())
+
 #############################################################################################
 # Spatially Explicit Dynamic Occupancy Model For the Flatwoods Salamander on Eglin Air Force Base
 
@@ -24,11 +26,12 @@ ids = unique(covs$ID)
 dat = dat[dat$SiteName %in% ids,]
 
 # extract year from dates and merge to data
-dat$Year = as.numeric(format(as.Date(dat[,2], format = "%m/%d/%Y") - 180, "%Y"))
+dat$Year = as.numeric(format(as.Date(dat[,2], format = "%m/%d/%Y") + 180, "%Y"))
 
 # filter
-dat = dat[which(dat$Year > 2005), ]  # filter years
-dat = dat[which(dat$SurveyTypeID_FK == 1 | dat$SurveyTypeID_FK == 6), ]  # filter survey type
+dat = dat[which(dat$Year > 2002), ]  # filter years
+dat = dat[which(dat$SurveyTypeID_FK == 1 | dat$SurveyTypeID_FK == 6 | 
+                dat$SurveyTypeID_FK == 15), ]  # filter survey type
 
 # select relevant columns
 dat = dat %>% select(SiteName, Year, AMBBIS)
@@ -42,7 +45,7 @@ dat = dat[dat$SiteName %in% ids,]
 
 #------------------------------------------------------------------
 # run if you want to exclude translocation ponds
-dat[which(dat$SiteName == 2), "AMBBIS"] = 0
+dat[which(dat$SiteName == 2 & dat$Year > 2019), "AMBBIS"] = 0  #except 2004 & 2006 (translocations began 2020)
 dat[which(dat$SiteName == 30), "AMBBIS"] = 0
 dat[which(dat$SiteName == 31), "AMBBIS"] = 0
 #--------------------------------------------------------------------
@@ -64,7 +67,7 @@ dat = dat %>%
   group_by(Year, SiteName) %>%
   mutate(survey = 1:n())
 
-# take only the first 6 surveys in eah year
+# take only the first 6 surveys in each year
 #dat = dat %>% filter(survey < 7)
 
 # maximum number of surveys at a site within a year
@@ -126,16 +129,16 @@ for(i in 1:n.sites){
 # JAGS model
 #############
 
-sink("fw_sp_occ.txt")
+sink("fw_sp_occ_notranslocation.txt")
 cat("
 
 model {
 
      # Priors
 
-  PSI1 ~ dbeta(1, 20)
+  PSI1 ~ dbeta(1, 1)
   
-  alpha ~ dgamma(10, 10)
+  alpha ~ dgamma(1, 1)
   
   phi ~ dbeta(1, 1)
 
@@ -209,32 +212,42 @@ nb = 10000
 nt = 400
 
 # Run the model
-jagsOut <- jags(data = jdata, inits = inits, parameters.to.save = wanted, model.file = "fw_sp_occ.txt",
+jagsOut2 <- jags(data = jdata, inits = inits, parameters.to.save = wanted, model.file = "fw_sp_occ_notranslocation.txt",
                 n.chains=nc, n.iter=ni, n.adapt=na, n.burnin = nb, n.thin = nt, DIC=FALSE, parallel=TRUE)
 
 
-traceplot(jagsOut)
-hist(jagsOut$sims.list$PSI1)
-hist(jagsOut$sims.list$phi)
-hist(jagsOut$sims.list$alpha)
-hist(jagsOut$sims.list$p)
-hist(jagsOut$sims.list$N)
+traceplot(jagsOut2)
+hist(jagsOut2$sims.list$PSI1)
+hist(jagsOut2$sims.list$phi)
+hist(jagsOut2$sims.list$alpha)
+hist(jagsOut2$sims.list$p)
+hist(jagsOut2$sims.list$N)
 
 # save output
-save(jagsOut, file = "fw_sp_occ.RData")
-#save(jagsOut, file = "fw_sp_occ_NO_TRANSLOCATIONS.RData")
+#save(jagsOut2, file = "fw_sp_occ_10Oct2024.RData")
+save(jagsOut2, file = "fw_sp_occ_NO_TRANSLOCATIONS_10Oct2024.RData")
 
+jagsOut2
+
+z.naive
+                                                 #2007
+z.naive_trans <- as.numeric(c("1", "6", "3", "4", "0",  "4",  "1",  "9",  "4",  "2",  
+                              "2", "11",  "9", "11", "13",  "7",  "9", "18",  "7",
+                              "2", "12", "16")) #added to account for 2007
 
 ##########
 # OUTPUT
 
-pdf(file = "occ_trends.pdf", width = 10, height = 12)
+pdf(file = "occ_trends2.pdf", width = 10, height = 12)
 
-op <- par(mfrow=c(2,1), cex.main = 1.5, mar = c(5, 6, 4, 5) + 0.1, mgp = c(3.5, 1, 0), cex.lab = 1.5 , font.lab = 2, cex.axis = 1.3, bty = "n", las = 1)
+op <- par(mfrow=c(2,1), cex.main = 1.5, mar = c(5, 6, 4, 5) + 0.1, mgp = c(3.5, 1, 0), 
+          cex.lab = 1.5 , font.lab = 2, cex.axis = 1.3, bty = "n", las = 1)
 
-
-b <- barplot(z.naive, las = 1, xlab = " ", ylab = " ", col = "grey", cex.lab = 1.7, 
+#one with and other without translocations
+b <- barplot(z.naive_trans, las = 1, xlab = " ", ylab = " ", col = "grey", cex.lab = 1.7, 
              cex.main = 1.5, axes = FALSE, ylim = c(0, 27))
+
+n.years <- 22 #added to account for 2007
 
 axis(1, seq(from = 0.7, by = 1.2, length.out = n.years), year1:yearn, cex.axis = 1.3)
 axis(2, cex.axis = 1.3, las = 1)
@@ -242,14 +255,13 @@ par(las = 0)
 mtext("Year", side = 1, line = 2.5, cex = 1.5)
 mtext("Naive Occupancy", side = 2, line = 3, cex = 1.5)
 
-
-load("fw_sp_occ_NO_TRANSLOCATIONS.RData")
-
-#occupied sites
-n = c("N[1]", "N[2]", "N[3]", "N[4]", "N[5]", "N[6]", "N[7]", "N[8]", "N[9]", "N[10]", "N[11]", "N[12]", "N[13]",  "N[14]", "N[15]", "N[16]",  "N[17]")
-
-# Number of Occupied Sites
-toplot <- jagsOut$summary[n, c(1,3,7)]
+a <- load("fw_sp_occ_NO_TRANSLOCATIONS_10Oct2024.RData")
+a=jagsOut2
+#occupied sites   (N is the predicted occupancy)
+n = c("N[1]", "N[2]", "N[3]", "N[4]", "N[5]", "N[6]", "N[7]", "N[8]", "N[9]", "N[10]", "N[11]", "N[12]", "N[13]",  "N[14]", "N[15]", "N[16]",  "N[17]", "N[18]", "N[19]", "N[20]", "N[21]")
+length(n)
+# Number of Occupied Sites (summary of the mean # of occupied sites per year)
+toplot <- jagsOut2$summary[n, c(1,3,7)]
 
 plotsegraph <- function(loc, lower, upper, wiskwidth, color = "grey", linewidth = 2) {
   
@@ -262,11 +274,16 @@ plotsegraph <- function(loc, lower, upper, wiskwidth, color = "grey", linewidth 
            col = color, lwd = linewidth)  # lower whiskers
 }
 
-plot(year1:yearn, toplot[,1], col = "grey", pch = 21, bg = "grey", cex = 1.5,
-     xlim = c(year1, yearn), ylim = c(0, 27), ylab = "", xlab = "", axes = FALSE)
-lines(year1:yearn, toplot[,1], lwd = 2, type = "c", col = "grey")
-plotsegraph(year1:yearn, toplot[,2], toplot[,3], 0.2, color = "grey")
-axis(1, year1:yearn)
+newyears <- c(year1:yearn) #added to account for 2007
+newyears <- subset(newyears, newyears != 2007)  #added to omit 2007
+length(newyears) #21, now matches
+
+     #Changed to "newyears" to account for 2007
+plot(newyears, toplot[,1], col = "grey", pch = 21, bg = "grey", cex = 1.5,
+     xlim = c(year1, yearn), ylim = c(0, 25), ylab = "", xlab = "", axes = FALSE)
+lines(newyears, toplot[,1], lwd = 2, type = "c", col = "grey")
+plotsegraph(newyears, toplot[,2], toplot[,3], 0.2, color = "grey")
+axis(1, newyears)
 axis(2) 
 
 par(las = 0)
@@ -276,16 +293,16 @@ mtext("Predicted Occupancy", side = 2, line = 3.7, cex = 1.5)
 lines(year1:yearn, rep(toplot[1,1], n.years), lty = "dashed")
 
 #########################################
-load("fw_sp_occ.RData")
-toplot <- jagsOut$summary[n, c(1,3,7)]
-points(year1:yearn+0.1, toplot[,1], col = "black", pch = 21, bg = "black", cex = 1.5)
-lines(year1:yearn+0.1, toplot[,1], lwd = 2, type = "c")
-plotsegraph(year1:yearn+0.1, toplot[,2], toplot[,3], 0.2, color = "black")
+load("fw_sp_occ_10Oct2024.RData")
+toplot <- jagsOut2$summary[n, c(1,3,7)]
+points(newyears+0.1, toplot[,1], col = "black", pch = 21, bg = "black", cex = 1.5)
+lines(newyears+0.1, toplot[,1], lwd = 2, type = "c")
+plotsegraph(newyears+0.1, toplot[,2], toplot[,3], 0.2, color = "black")
 
-points(2008, 24, pch = 19, lwd = 2, cex = 1.7, col = "grey")
-text(2008.5, 24, "Without Translocations", cex = 1.5, font = 1, adj = 0)
-points(2008, 22, pch = 19, lwd = 2, cex = 1.7)
-text(2008.5, 22, "With Translocations", cex = 1.5, font = 1, adj = 0)
+points(2008, 60, pch = 19, lwd = 2, cex = 1.7, col = "grey")
+text(2008.5, 60, "Without Translocations", cex = 1.5, font = 1, adj = 0)
+points(2008, 55, pch = 19, lwd = 2, cex = 1.7)
+text(2008.5, 55, "With Translocations", cex = 1.5, font = 1, adj = 0)
 
 
 dev.off()
@@ -296,7 +313,7 @@ dev.off()
 
 load("fw_sp_occ_NO_TRANSLOCATIONS.RData")
 
-toplot <- jagsOut$summary[c("alpha"), c(1,3,7)]
+toplot <- jagsOut2$summary[c("alpha"), c(1,3,7)]
 
 a.mu = toplot[1]
 a.L = toplot[2] 
@@ -335,7 +352,7 @@ n = c("p[1]", "p[2]", "p[3]", "p[4]", "p[5]", "p[6]", "p[7]", "p[8]", "p[9]", "p
 op <- par(mfrow=c(1,1), mar=c(4,4,1,1)+0.1, pch=4, lwd=2, las=1)
 
 # Number of Occupied Sites
-toplot <- jagsOut$summary[n, c(1,3,7)]
+toplot <- jagsOut2$summary[n, c(1,3,7)]
 
 plotsegraph <- function(loc, lower, upper, wiskwidth, color = "grey", linewidth = 2) {
   
@@ -349,9 +366,9 @@ plotsegraph <- function(loc, lower, upper, wiskwidth, color = "grey", linewidth 
 }
 
 op <- par(cex.main = 1.5, mar = c(5, 6, 4, 5) + 0.1, mgp = c(3.5, 1, 0), cex.lab = 1.5 , font.lab = 2, cex.axis = 1.3, bty = "n", las = 1)
-plot(year1:yearn, toplot[,1], col = "black", pch = 21, bg = "black", cex = 1.5,
+plot(newyears, toplot[,1], col = "black", pch = 21, bg = "black", cex = 1.5,
      xlim = c(year1, yearn), ylim = c(0, 1), ylab = "", xlab = "", axes = FALSE)
-plotsegraph(year1:yearn, toplot[,2], toplot[,3], 0.2, color = "black")
+plotsegraph(newyears, toplot[,2], toplot[,3], 0.2, color = "black")
 axis(1, year1:yearn)
 axis(2) 
 
